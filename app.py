@@ -132,6 +132,7 @@ def ai_query():
                 persons.append(person)
             
             return jsonify({
+                
                 "question": question,
                 "sparql_query": sparql_query,
                 "results": persons

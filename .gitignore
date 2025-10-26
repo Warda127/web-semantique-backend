@@ -1,7 +1,9 @@
 # Environnement virtuel Python
-semantic-web-env/
 venv/
 env/
+.semantic-web-env/
+semantic-web-env/
+__pycache__/
 
 # Fichiers Python
 __pycache__/
@@ -21,6 +23,7 @@ dist/
 *.egg-info/
 
 # Fichiers temporaires
+*.log
 *.tmp
 *.temp
 
