@@ -1,0 +1,38 @@
+# Environnement virtuel Python
+semantic-web-env/
+venv/
+env/
+
+# Fichiers Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Packages PyTorch et modèles lourds
+*.pth
+*.bin
+*.dll
+
+# Dossiers d'installation
+build/
+dist/
+*.egg-info/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
