@@ -1,9 +1,12 @@
-# Environnement virtuel Python
+# Environnements virtuels Python
 venv/
 env/
-.semantic-web-env/
 semantic-web-env/
+.semantic-web-env/
 __pycache__/
+Lib/
+Scripts/
+
 
 # Fichiers Python
 __pycache__/
@@ -25,7 +28,8 @@ dist/
 # Fichiers temporaires
 *.log
 *.tmp
-*.temp
+*.pyc
+.DS_Store
 
 # Logs
 *.log
