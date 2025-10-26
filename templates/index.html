@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche Sémantique - Personnes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .search-container {
+            margin-bottom: 30px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .person-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Recherche Sémantique - Personnes</h1>
+    
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Rechercher une personne...">
+        <button onclick="searchPersons()">Rechercher</button>
+        <button onclick="loadAllPersons()">Voir toutes les personnes</button>
+    </div>
+    
+    <div id="results" class="results"></div>
+
+    <script>
+        async function loadAllPersons() {
+            try {
+                const response = await fetch('/api/persons');
+                const persons = await response.json();
+                displayResults(persons);
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function searchPersons() {
+            const searchTerm = document.getElementById('searchInput').value;
+            if (!searchTerm) {
+                loadAllPersons();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search/persons?q=${encodeURIComponent(searchTerm)}`);
+                const persons = await response.json();
+                displayResults(persons);
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function displayResults(persons) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (persons.error) {
+                resultsDiv.innerHTML = `<p style="color: red;">Erreur: ${persons.error}</p>`;
+                return;
+            }
+
+            if (persons.length === 0) {
+                resultsDiv.innerHTML = '<p>Aucune personne trouvée.</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = persons.map(person => `
+                <div class="person-card">
+                    <h3>${person.name}</h3>
+                    <p><strong>Type:</strong> ${person.type.split('#')[1] || person.type}</p>
+                    <p><strong>URI:</strong> ${person.uri}</p>
+                </div>
+            `).join('');
+        }
+
+        // Charger toutes les personnes au démarrage
+        loadAllPersons();
+    </script>
+</body>
+</html>
