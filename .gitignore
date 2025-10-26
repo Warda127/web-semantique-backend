@@ -43,3 +43,4 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+semantic-web-env/
