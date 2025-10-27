@@ -46,6 +46,37 @@
         <rdfs:range rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TransportMode"/>
     </owl:ObjectProperty>
     
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasTravelPlan -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasTravelPlan">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#Person"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+    </owl:ObjectProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#usesTransportMode -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#usesTransportMode">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TransportMode"/>
+    </owl:ObjectProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasStartStation -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasStartStation">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#Station"/>
+    </owl:ObjectProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasEndStation -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasEndStation">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#Station"/>
+    </owl:ObjectProperty>
+    
 
 
     <!-- 
@@ -92,6 +123,38 @@
 
     <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasSpeed">
         <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TransportMode"/>
+    </owl:DatatypeProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasStartTime -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasStartTime">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#time"/>
+    </owl:DatatypeProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasEndTime -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasEndTime">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#time"/>
+    </owl:DatatypeProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasDaysOfWeek -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#hasDaysOfWeek">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#isActive -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#isActive">
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
     </owl:DatatypeProperty>
     
 
@@ -194,6 +257,51 @@
     <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TransportMode -->
 
     <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TransportMode"/>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#SingleTripPlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#SingleTripPlan">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:comment>One-time, non-recurring journey from origin to destination</rdfs:comment>
+    </owl:Class>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#DailyCommutePlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#DailyCommutePlan">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:comment>Regular daily travel pattern, typically between home and work/school</rdfs:comment>
+    </owl:Class>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#WeeklyPlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#WeeklyPlan">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:comment>Regular weekly travel pattern with consistent weekly schedule</rdfs:comment>
+    </owl:Class>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#SeasonalPlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#SeasonalPlan">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:comment>Travel patterns that change with seasons (summer/winter schedules, tourist seasons)</rdfs:comment>
+    </owl:Class>
+    
+    
+    <!-- http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TourPlan -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TourPlan">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#TravelPlan"/>
+        <rdfs:comment>Multi-day exploration itinerary, typically for tourists</rdfs:comment>
+    </owl:Class>
     
 
 
