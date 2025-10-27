@@ -14,6 +14,7 @@ from flask import Flask, request, jsonify
 from SPARQLWrapper import SPARQLWrapper, JSON
 from ai_sparql_transformer import sparql_transformer
 from transport_mode.routes import router as transport_mode_router
+from travel_plan.routes import router as travel_plan_router
 
 app = Flask(__name__)
 
@@ -27,6 +28,10 @@ def after_request(response):
  # transport mode routes
 # Register transport-mode blueprint so TransportMode endpoints are available under /api/transport-modes
 app.register_blueprint(transport_mode_router, url_prefix='/api/transport-modes')
+
+# travel plan routes
+# Register travel-plan blueprint so TravelPlan endpoints are available under /api/travel-plans
+app.register_blueprint(travel_plan_router, url_prefix='/api/travel-plans')
  
 # Configuration Fuseki
 # Use the dataset name shown in the Fuseki UI. Your UI shows dataset "smartcity",
