@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SmartCity Backend UI</title>
+  <style>
+    body{font-family:Inter,Segoe UI,Arial,sans-serif;margin:0;padding:0;background:#f4f6f8;color:#222}
+    header{background:#0b5cff;color:white;padding:18px 24px}
+    header h1{margin:0;font-size:18px}
+    .container{padding:18px;max-width:1100px;margin:0 auto}
+    .panel{background:white;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(16,24,40,0.06)}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type=text]{flex:1;padding:8px;border:1px solid #d1d5db;border-radius:6px}
+    button{background:#0b5cff;color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+    button.secondary{background:#6b7280}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #e6edf3;text-align:left}
+    th{background:#f8fafc;font-weight:600}
+    .muted{color:#6b7280;font-size:13px}
+    .debug{white-space:pre-wrap;background:#0f172a;color:#d1fae5;padding:12px;border-radius:6px;margin-top:12px;overflow:auto;max-height:300px}
+    .link{color:#0b5cff;cursor:pointer;text-decoration:underline}
+    .small{font-size:13px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SmartCity — Transport & Person Explorer</h1>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <div class="row">
+        <input id="transportSearch" type="text" placeholder="Search transport modes (e.g. Bike, Bus, Metro or partial name)"/>
+        <button id="searchTransportBtn">Search Transport Modes</button>
+        <button id="listTransportBtn" class="secondary">List All</button>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:8px">
+          <input id="debugTransport" type="checkbox"/> <span class="small muted">Debug</span>
+        </label>
+      </div>
+      <div id="transportResult" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <input id="personSearch" type="text" placeholder="Search persons by name (e.g. Alice)"/>
+        <button id="searchPersonBtn">Search Persons</button>
+        <button id="listPersonBtn" class="secondary">List All Persons</button>
+      </div>
+      <div id="personResult" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel">
+      <h3 class="small muted">Details / Debug</h3>
+      <div id="detail" class="small muted">Select an item to see details here.</div>
+      <div id="debugBox" class="debug" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const transportResult = document.getElementById('transportResult');
+    const personResult = document.getElementById('personResult');
+    const debugBox = document.getElementById('debugBox');
+    const detail = document.getElementById('detail');
+
+    function showDebug(obj){
+      debugBox.style.display = 'block';
+      debugBox.textContent = JSON.stringify(obj, null, 2);
+    }
+    function hideDebug(){ debugBox.style.display = 'none'; debugBox.textContent = '' }
+
+    async function fetchJson(url, opts){
+      try {
+        const r = await fetch(url, opts);
+        const text = await r.text();
+        try { return { ok: r.ok, status: r.status, data: JSON.parse(text), raw: text }; }
+        catch(e){ return { ok: r.ok, status: r.status, data: null, raw: text }; }
+      } catch(e){
+        return { ok:false, error: String(e) };
+      }
+    }
+
+    function renderTransportList(data, debugFlag){
+      transportResult.innerHTML = '';
+      hideDebug();
+      if(!data || !Array.isArray(data.modes) || data.modes.length===0){
+        transportResult.innerHTML = '<div class="muted">No transport modes found.</div>';
+        if(debugFlag) showDebug(data);
+        return;
+      }
+      const table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>URI</th><th>Type</th><th>Name</th><th>Speed</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      data.modes.forEach(m=>{
+        const tr = document.createElement('tr');
+        const short = m.uri ? m.uri.split(/[#/]/).pop() : '';
+        tr.innerHTML = `<td><span class="link">${short}</span><div class="muted small">${m.uri}</div></td>
+                        <td>${(m.type||m.localType||'').split(/[#/]/).pop()||''}</td>
+                        <td>${m.name || '<span class="muted">—</span>'}</td>
+                        <td>${m.speed==null?'<span class="muted">—</span>':m.speed}</td>`;
+        tr.querySelector('.link').addEventListener('click', ()=> showDetail(m));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      transportResult.appendChild(table);
+      if(debugFlag) showDebug(data);
+    }
+
+    function renderPersonList(list){
+      personResult.innerHTML = '';
+      if(!list || list.length===0){
+        personResult.innerHTML = '<div class="muted">No persons found.</div>';
+        return;
+      }
+      const table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>URI</th><th>Name</th><th>Type</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      list.forEach(p=>{
+        const tr = document.createElement('tr');
+        const short = p.uri ? p.uri.split(/[#/]/).pop() : '';
+        tr.innerHTML = `<td><span class="link">${short}</span><div class="muted small">${p.uri}</div></td>
+                        <td>${p.name||'<span class="muted">—</span>'}</td>
+                        <td>${(p.type||'').split(/[#/]/).pop()||''}</td>`;
+        tr.querySelector('.link').addEventListener('click', ()=> showDetail(p));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      personResult.appendChild(table);
+    }
+
+    function showDetail(obj){
+      detail.innerHTML = '<pre class="small">'+JSON.stringify(obj, null, 2)+'</pre>';
+    }
+
+    async function searchTransports(q, debugFlag){
+      const base = '/api/transport-modes/';
+      const params = [];
+      if(q) params.push('q='+encodeURIComponent(q));
+      if(debugFlag) params.push('debug=1');
+      const url = base + (params.length?('?'+params.join('&')):'');
+      const res = await fetchJson(url);
+      if(res.ok){
+        renderTransportList(res.data, debugFlag);
+      } else {
+        transportResult.innerHTML = `<div class="muted">Error: ${res.status||res.error}</div>`;
+        if(debugFlag) showDebug(res);
+      }
+    }
+
+    async function listAllTransports(){
+      await searchTransports('', document.getElementById('debugTransport').checked);
+    }
+
+    async function getTransport(localname){
+      const url = '/api/transport-modes/' + encodeURIComponent(localname);
+      const res = await fetchJson(url);
+      if(res.ok && !res.data.error){
+        showDetail(res.data);
+      } else {
+        showDetail({ error: res.data || res });
+      }
+    }
+
+    async function searchPersons(q){
+      const base = '/api/search/persons?q=' + encodeURIComponent(q||'');
+      const res = await fetchJson(base);
+      if(res.ok){
+        renderPersonList(res.data);
+      } else {
+        personResult.innerHTML = `<div class="muted">Error: ${res.status||res.error}</div>`;
+      }
+    }
+
+    // wire UI
+    document.getElementById('searchTransportBtn').addEventListener('click', ()=>{
+      const q = document.getElementById('transportSearch').value.trim();
+      const debug = document.getElementById('debugTransport').checked;
+      searchTransports(q, debug);
+    });
+    document.getElementById('listTransportBtn').addEventListener('click', listAllTransports);
+    document.getElementById('searchPersonBtn').addEventListener('click', ()=>{
+      searchPersons(document.getElementById('personSearch').value.trim());
+    });
+    document.getElementById('listPersonBtn').addEventListener('click', async ()=>{
+      const res = await fetchJson('/api/persons');
+      if(res.ok) renderPersonList(res.data||res);
+      else personResult.innerHTML = `<div class="muted">Error: ${res.status||res.error}</div>`;
+    });
+
+    // initial load
+    listAllTransports();
+  </script>
+</body>
+</html>
