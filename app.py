@@ -1,7 +1,19 @@
+# Notes: activate venv and install deps (run inside project folder)
+#   cd "c:\Users\Mon Pc\Desktop\web-semantique-backend"
+#   python -m venv venv      # if venv not created yet
+#   # Activate (Windows cmd)
+#   venv\Scripts\activate
+#   # or PowerShell:
+#   .\venv\Scripts\Activate.ps1
+#   # Install dependencies:
+#   pip install -r requirements.txt
+#   # Alternatively:
+#   pip install Flask SPARQLWrapper rdflib requests fastapi uvicorn
+
 from flask import Flask, request, jsonify
 from SPARQLWrapper import SPARQLWrapper, JSON
-import requests
 from ai_sparql_transformer import sparql_transformer
+from transport_mode.routes import router as transport_mode_router
 
 app = Flask(__name__)
 
@@ -12,9 +24,14 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
-
+ # transport mode routes
+# Register transport-mode blueprint so TransportMode endpoints are available under /api/transport-modes
+app.register_blueprint(transport_mode_router, url_prefix='/api/transport-modes')
+ 
 # Configuration Fuseki
-FUSEKI_ENDPOINT = "http://localhost:3030/semantiqueweb/sparql"
+# Use the dataset name shown in the Fuseki UI. Your UI shows dataset "smartcity",
+# so use the dataset SPARQL endpoint /{dataset}/query (or /{dataset}/sparql on some Fuseki versions).
+FUSEKI_ENDPOINT = "http://localhost:3030/smartcity/query"
 
 def execute_sparql_query(query):
     """Exécute une requête SPARQL sur Fuseki"""
@@ -26,7 +43,7 @@ def execute_sparql_query(query):
         results = sparql.query().convert()
         return results
     except Exception as e:
-        print(f"Erreur SPARQL: {e}")
+        print(f"Erreur SPARQL: {e} (endpoint={FUSEKI_ENDPOINT})")
         return None
 
 # SUPPRIMEZ la route index qui utilise le template HTML
@@ -144,4 +161,5 @@ def ai_query():
         return jsonify({"error": f"Erreur IA: {str(e)}"}), 500
 
 if __name__ == '__main__':
+    print(f"Starting app using Fuseki endpoint: {FUSEKI_ENDPOINT}")
     app.run(debug=True, port=5000)
