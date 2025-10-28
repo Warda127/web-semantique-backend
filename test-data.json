@@ -1,0 +1,8 @@
+{
+  "localname": "TestStation",
+  "type": "CarParkingStation", 
+  "name": "Test Parking Station",
+  "capacity": 100,
+  "availableSpaces": 50,
+  "pricePerHour": 3.0
+}

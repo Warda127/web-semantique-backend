@@ -9,6 +9,7 @@
 #   pip install -r requirements.txt
 #   # Alternatively:
 #   pip install Flask SPARQLWrapper rdflib requests fastapi uvicorn
+import os
 
 from flask import Flask, request, jsonify
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -18,7 +19,22 @@ from travel_plan.routes import router as travel_plan_router
 from parking_station.routes import router as parking_station_router
 
 app = Flask(__name__)
+FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
+FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
 
+
+def execute_sparql_query(query):
+    """Exécute une requête SPARQL sur Fuseki"""
+    sparql = SPARQLWrapper(FUSEKI_ENDPOINT)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+
+    try:
+        results = sparql.query().convert()
+        return results
+    except Exception as e:
+        print(f"Erreur SPARQL: {e} (endpoint={FUSEKI_ENDPOINT})")
+        return None
 # Middleware CORS
 @app.after_request
 def after_request(response):
@@ -37,10 +53,8 @@ app.register_blueprint(travel_plan_router, url_prefix='/api/travel-plans')
 app.register_blueprint(parking_station_router, url_prefix='/api/parking-stations')
 
  
-# Configuration Fuseki
-# Use the dataset name shown in the Fuseki UI. Your UI shows dataset "smartcity",
-# so use the dataset SPARQL endpoint /{dataset}/query (or /{dataset}/sparql on some Fuseki versions).
-FUSEKI_ENDPOINT = "http://localhost:3030/smartcity/query"
+# Configuration Fuseki - Use environment variable set in docker-compose.yml
+# The environment variable FUSEKI_QUERY is already set at the top of the file
 
 def execute_sparql_query(query):
     """Exécute une requête SPARQL sur Fuseki"""
@@ -170,5 +184,5 @@ def ai_query():
         return jsonify({"error": f"Erreur IA: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    print(f"Starting app using Fuseki endpoint: {FUSEKI_ENDPOINT}")
-    app.run(debug=True, port=5000)
+    # CRITICAL: Bind to 0.0.0.0 to accept connections from outside the container
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Apache Jena Fuseki - SPARQL Triplestore
+  # Apache Jena Fuseki - Using official Apache image
   fuseki:
     build:
       context: ./fuseki
@@ -10,21 +10,18 @@ services:
     ports:
       - "3030:3030"
     volumes:
-      # Persist Fuseki database
-      - fuseki-data:/fuseki-base/databases
-      # Mount ontology for initial load
-      - ./ontologie:/ontologie:ro
+      - fuseki-data:/fuseki
+      - ./ontologie:/staging:ro
     environment:
-      - JAVA_OPTIONS=-Xmx2g
-      - TDB_VERSION=2
+      - JVM_ARGS=-Xmx2g
     networks:
       - smartcity-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/$$/ping"]
-      interval: 30s
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/$$/ping" ]
+      interval: 20s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 10
+      start_period: 90s
     restart: unless-stopped
 
   # Flask Backend API
@@ -36,10 +33,10 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      # Mount code for development (remove in production)
       - ./app.py:/app/app.py
       - ./transport_mode:/app/transport_mode
       - ./travel_plan:/app/travel_plan
+      - ./parking_station:/app/parking_station
       - ./ai_sparql_transformer.py:/app/ai_sparql_transformer.py
       - ./ontologie:/app/ontologie:ro
     environment:
@@ -57,22 +54,118 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
     restart: unless-stopped
 
-  # Data Loader - Init container to load ontology
-  data-loader:
+  # Init container - creates dataset and loads ontology
+  fuseki-init:
     image: curlimages/curl:latest
-    container_name: smartcity-loader
+    container_name: smartcity-init
     depends_on:
       fuseki:
         condition: service_healthy
     volumes:
       - ./ontologie:/data:ro
-      - ./init-fuseki.sh:/init-fuseki.sh:ro
     networks:
       - smartcity-network
-    command: sh /init-fuseki.sh
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "🚀 Starting Fuseki initialization..."
+        
+        # Wait extra time for Fuseki to be fully ready
+        echo "⏳ Waiting for Fuseki to be fully operational..."
+        sleep 15
+        
+        # Check if dataset exists (newer Fuseki API)
+        echo "🔍 Checking if dataset 'smartcity' exists..."
+        DATASET_EXISTS=$$(curl -s http://fuseki:3030/$$/datasets | grep -o "smartcity" | wc -l)
+        
+        if [ "$$DATASET_EXISTS" -gt "0" ]; then
+          echo "✅ Dataset 'smartcity' already exists"
+        else
+          echo "📦 Creating dataset 'smartcity'..."
+          
+          # Try creating with different methods (depends on Fuseki version)
+          # Method 1: via $$$/datasets endpoint
+          curl -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data "dbName=smartcity&dbType=tdb2" \
+            http://fuseki:3030/$$/datasets
+          
+          # Method 2: If authentication needed
+          curl -X POST \
+            -u admin:admin123 \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data "dbName=smartcity&dbType=tdb2" \
+            http://fuseki:3030/$$/datasets
+          
+          sleep 5
+          echo "✅ Dataset creation attempted"
+        fi
+        
+        # Check if data already loaded
+        echo "🔍 Checking if ontology data is already loaded..."
+        TRIPLE_COUNT=$$(curl -s -X POST \
+          -H "Accept: application/sparql-results+json" \
+          -H "Content-Type: application/sparql-query" \
+          --data "SELECT (COUNT(*) as ?count) WHERE { ?s ?p ?o }" \
+          http://fuseki:3030/smartcity/query 2>/dev/null | grep -o '"value":"[0-9]*"' | head -1 | grep -o '[0-9]*' || echo "0")
+        
+        echo "📊 Current triple count: $${TRIPLE_COUNT:-0}"
+        
+        if [ "$${TRIPLE_COUNT:-0}" -gt "10" ]; then
+          echo "✅ Data already loaded. Skipping ontology upload."
+        else
+          echo "📤 Loading ontology into Fuseki..."
+          
+          # List available files
+          echo "📂 Available files in /data:"
+          ls -la /data/ || true
+          
+          # Try loading the RDF file
+          if [ -f "/data/WebSemEsprit (1).rdf" ]; then
+            echo "📤 Uploading WebSemEsprit (1).rdf..."
+            
+            curl -v -X POST \
+              -H "Content-Type: application/rdf+xml" \
+              --data-binary "@/data/WebSemEsprit (1).rdf" \
+              http://fuseki:3030/smartcity/data 2>&1
+            
+            if [ $$? -eq 0 ]; then
+              echo "✅ Ontology loaded successfully!"
+              sleep 3
+              
+              # Verify data loaded
+              NEW_COUNT=$$(curl -s -X POST \
+                -H "Accept: application/sparql-results+json" \
+                -H "Content-Type: application/sparql-query" \
+                --data "SELECT (COUNT(*) as ?count) WHERE { ?s ?p ?o }" \
+                http://fuseki:3030/smartcity/query 2>/dev/null | grep -o '"value":"[0-9]*"' | head -1 | grep -o '[0-9]*' || echo "0")
+              
+              echo "📊 New triple count: $${NEW_COUNT:-0}"
+            else
+              echo "❌ Failed to load ontology"
+            fi
+          else
+            echo "⚠️  Ontology file not found at /data/WebSemEsprit (1).rdf"
+          fi
+          
+          # Load parking station sample data if exists
+          if [ -f "/data/sampledataParking/sample_parking_data.ttl" ]; then
+            echo "📤 Loading parking station sample data..."
+            curl -X POST \
+              -H "Content-Type: text/turtle" \
+              --data-binary "@/data/sampledataParking/sample_parking_data.ttl" \
+              http://fuseki:3030/smartcity/data 2>&1
+            
+            if [ $$? -eq 0 ]; then
+              echo "✅ Parking data loaded!"
+            fi
+          fi
+        fi
+        
+        echo "🎉 Initialization complete!"
     restart: "no"
 
 networks:
