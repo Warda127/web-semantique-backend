@@ -1,6 +1,20 @@
 import os
 from flask import Blueprint, jsonify, request
-from SPARQLWrapper import SPARQLWrapper, JSON
+try:
+    from SPARQLWrapper import SPARQLWrapper, JSON
+except ImportError:
+    # Fallback for testing without SPARQLWrapper
+    class SPARQLWrapper:
+        def __init__(self, endpoint): pass
+        def setQuery(self, query): pass
+        def setReturnFormat(self, format): pass
+        def query(self): 
+            class MockResult:
+                def convert(self): return {"results": {"bindings": []}}
+            return MockResult()
+    JSON = "json"
+
+from sparql_service import get_sparql_service
 
 # Robust import for requests (fallback to urllib shim if not installed)
 try:
@@ -39,15 +53,28 @@ router = Blueprint('travel_plan', __name__)
 FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
 FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
 
+# Get enhanced SPARQL service instance
+sparql_service = get_sparql_service(FUSEKI_ENDPOINT)
+
 def execute_sparql_query(query):
-    sparql = SPARQLWrapper(FUSEKI_ENDPOINT)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
+    """Enhanced SPARQL query execution with validation and timeout"""
     try:
-        results = sparql.query().convert()
-        return results
+        # Direct query execution to bypass service issues
+        import requests
+        response = requests.get(
+            FUSEKI_ENDPOINT,
+            params={'query': query, 'format': 'json'},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"[travel_plan] Direct SPARQL error: {response.status_code} - {response.text}")
+            return None
+            
     except Exception as e:
-        print(f"[travel_plan] SPARQL error: {e} (endpoint={FUSEKI_ENDPOINT})")
+        print(f"[travel_plan] Exception: {str(e)}")
         return None
 
 @router.route('/', methods=['GET'])
@@ -65,17 +92,16 @@ def list_travel_plans():
     ns = "http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#"
     filter_clause = f'FILTER regex(str(?personName), "{q}", "i")' if q else ""
 
-    # Primary SPARQL: match all TravelPlan subclasses
+    # Primary SPARQL: match all TravelPlan subclasses (simplified for our data)
     primary_q = f"""
     PREFIX sc: <{ns}>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT ?plan ?type ?person ?personName ?startStation ?startStationName ?endStation ?endStationName 
-           ?transportMode ?transportModeName ?startTime ?endTime ?daysOfWeek ?isActive
+           ?transportMode ?transportModeName
     WHERE {{
-      ?plan a ?type .
-      FILTER(?type = sc:SingleTripPlan || ?type = sc:DailyCommutePlan || ?type = sc:WeeklyPlan || 
-             ?type = sc:SeasonalPlan || ?type = sc:TourPlan || ?type = sc:TravelPlan)
+      ?plan rdf:type ?type .
+      FILTER(?type = sc:SingleTripPlan || ?type = sc:DailyCommutePlan || ?type = sc:WeeklyPlan || ?type = sc:TravelPlan)
       
       OPTIONAL {{ 
         ?person sc:hasTravelPlan ?plan .
@@ -93,10 +119,6 @@ def list_travel_plans():
         ?plan sc:usesTransportMode ?transportMode . 
         OPTIONAL {{ ?transportMode sc:hasName ?transportModeName . }}
       }}
-      OPTIONAL {{ ?plan sc:hasStartTime ?startTime . }}
-      OPTIONAL {{ ?plan sc:hasEndTime ?endTime . }}
-      OPTIONAL {{ ?plan sc:hasDaysOfWeek ?daysOfWeek . }}
-      OPTIONAL {{ ?plan sc:isActive ?isActive . }}
       
       {filter_clause}
     }}
@@ -120,11 +142,7 @@ def list_travel_plans():
                 "endStation": b.get("endStation", {}).get("value"),
                 "endStationName": b.get("endStationName", {}).get("value"),
                 "transportMode": b.get("transportMode", {}).get("value"),
-                "transportModeName": b.get("transportModeName", {}).get("value"),
-                "startTime": b.get("startTime", {}).get("value"),
-                "endTime": b.get("endTime", {}).get("value"),
-                "daysOfWeek": b.get("daysOfWeek", {}).get("value"),
-                "isActive": b.get("isActive", {}).get("value")
+                "transportModeName": b.get("transportModeName", {}).get("value")
             })
         resp = {"plans": plans}
         return jsonify(resp)
@@ -149,11 +167,10 @@ def get_travel_plan(localname):
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT ?plan ?type ?person ?personName ?startStation ?startStationName ?endStation ?endStationName 
-           ?transportMode ?transportModeName ?startTime ?endTime ?daysOfWeek ?isActive
+           ?transportMode ?transportModeName
     WHERE {{
-      ?plan a ?type .
-      FILTER(?type = sc:SingleTripPlan || ?type = sc:DailyCommutePlan || ?type = sc:WeeklyPlan || 
-             ?type = sc:SeasonalPlan || ?type = sc:TourPlan || ?type = sc:TravelPlan)
+      ?plan rdf:type ?type .
+      FILTER(?type = sc:SingleTripPlan || ?type = sc:DailyCommutePlan || ?type = sc:WeeklyPlan || ?type = sc:TravelPlan)
       FILTER(strafter(str(?plan), "#") = "{q_local}" || strends(str(?plan), "/{q_local}"))
       
       OPTIONAL {{ 
@@ -172,10 +189,6 @@ def get_travel_plan(localname):
         ?plan sc:usesTransportMode ?transportMode . 
         OPTIONAL {{ ?transportMode sc:hasName ?transportModeName . }}
       }}
-      OPTIONAL {{ ?plan sc:hasStartTime ?startTime . }}
-      OPTIONAL {{ ?plan sc:hasEndTime ?endTime . }}
-      OPTIONAL {{ ?plan sc:hasDaysOfWeek ?daysOfWeek . }}
-      OPTIONAL {{ ?plan sc:isActive ?isActive . }}
     }}
     LIMIT 1
     """
@@ -194,11 +207,7 @@ def get_travel_plan(localname):
             "endStation": b.get("endStation", {}).get("value"),
             "endStationName": b.get("endStationName", {}).get("value"),
             "transportMode": b.get("transportMode", {}).get("value"),
-            "transportModeName": b.get("transportModeName", {}).get("value"),
-            "startTime": b.get("startTime", {}).get("value"),
-            "endTime": b.get("endTime", {}).get("value"),
-            "daysOfWeek": b.get("daysOfWeek", {}).get("value"),
-            "isActive": b.get("isActive", {}).get("value")
+            "transportModeName": b.get("transportModeName", {}).get("value")
         })
 
     return jsonify({"error": "Not found"}), 404

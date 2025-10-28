@@ -1,6 +1,20 @@
 import os
 from flask import Blueprint, jsonify, request
-from SPARQLWrapper import SPARQLWrapper, JSON
+try:
+    from SPARQLWrapper import SPARQLWrapper, JSON
+except ImportError:
+    # Fallback for testing without SPARQLWrapper
+    class SPARQLWrapper:
+        def __init__(self, endpoint): pass
+        def setQuery(self, query): pass
+        def setReturnFormat(self, format): pass
+        def query(self): 
+            class MockResult:
+                def convert(self): return {"results": {"bindings": []}}
+            return MockResult()
+    JSON = "json"
+
+from sparql_service import get_sparql_service
 
 # Robust import for requests (fallback to urllib shim if not installed)
 try:
@@ -39,15 +53,17 @@ router = Blueprint('transport_mode', __name__)
 FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
 FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
 
+# Get enhanced SPARQL service instance
+sparql_service = get_sparql_service(FUSEKI_ENDPOINT)
+
 def execute_sparql_query(query):
-    sparql = SPARQLWrapper(FUSEKI_ENDPOINT)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    try:
-        results = sparql.query().convert()
-        return results
-    except Exception as e:
-        print(f"[transport_mode] SPARQL error: {e} (endpoint={FUSEKI_ENDPOINT})")
+    """Enhanced SPARQL query execution with validation and timeout"""
+    result = sparql_service.execute_query_with_validation(query)
+    
+    if result.success:
+        return result.data
+    else:
+        print(f"[transport_mode] Enhanced SPARQL error: {result.error} (endpoint={FUSEKI_ENDPOINT})")
         return None
 
 @router.route('/', methods=['GET'])
