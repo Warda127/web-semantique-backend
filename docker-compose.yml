@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Apache Jena Fuseki - SPARQL Triplestore
+  fuseki:
+    build:
+      context: ./fuseki
+      dockerfile: Dockerfile
+    container_name: smartcity-fuseki
+    ports:
+      - "3030:3030"
+    volumes:
+      # Persist Fuseki database
+      - fuseki-data:/fuseki-base/databases
+      # Mount ontology for initial load
+      - ./ontologie:/ontologie:ro
+    environment:
+      - JAVA_OPTIONS=-Xmx2g
+      - TDB_VERSION=2
+    networks:
+      - smartcity-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/$$/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Flask Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartcity-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount code for development (remove in production)
+      - ./app.py:/app/app.py
+      - ./transport_mode:/app/transport_mode
+      - ./travel_plan:/app/travel_plan
+      - ./ai_sparql_transformer.py:/app/ai_sparql_transformer.py
+      - ./ontologie:/app/ontologie:ro
+    environment:
+      - FLASK_ENV=development
+      - FUSEKI_QUERY=http://fuseki:3030/smartcity/query
+      - FUSEKI_UPDATE=http://fuseki:3030/smartcity/update
+      - FUSEKI_DATA=http://fuseki:3030/smartcity/data
+    depends_on:
+      fuseki:
+        condition: service_healthy
+    networks:
+      - smartcity-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/persons"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # Data Loader - Init container to load ontology
+  data-loader:
+    image: curlimages/curl:latest
+    container_name: smartcity-loader
+    depends_on:
+      fuseki:
+        condition: service_healthy
+    volumes:
+      - ./ontologie:/data:ro
+      - ./init-fuseki.sh:/init-fuseki.sh:ro
+    networks:
+      - smartcity-network
+    command: sh /init-fuseki.sh
+    restart: "no"
+
+networks:
+  smartcity-network:
+    driver: bridge
+    name: smartcity-network
+
+volumes:
+  fuseki-data:
+    driver: local
+    name: smartcity-fuseki-data

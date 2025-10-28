@@ -1,0 +1,28 @@
+@prefix sc: <http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sc:CentralGarage a sc:CarParkingStation ;
+    sc:hasName "Central City Garage" ;
+    sc:hasCapacity "200"^^xsd:integer ;
+    sc:hasAvailableSpaces "45"^^xsd:integer ;
+    sc:hasPricePerHour "2.5"^^xsd:float ;
+    sc:hasAddress "123 Main Street" ;
+    sc:hasLatitude "48.8566"^^xsd:float ;
+    sc:hasLongitude "2.3522"^^xsd:float ;
+    sc:hasOperatingHours "24/7" .
+
+sc:BikeStation1 a sc:BikeParkingStation ;
+    sc:hasName "Metro Station Bike Park" ;
+    sc:hasCapacity "50"^^xsd:integer ;
+    sc:hasAvailableSpaces "12"^^xsd:integer ;
+    sc:hasPricePerHour "0.5"^^xsd:float ;
+    sc:hasAddress "456 Park Avenue" ;
+    sc:hasOperatingHours "06:00-23:00" .
+
+sc:EVCharger1 a sc:EVChargingStation ;
+    sc:hasName "Green Energy Charging Hub" ;
+    sc:hasCapacity "10"^^xsd:integer ;
+    sc:hasAvailableSpaces "3"^^xsd:integer ;
+    sc:hasPricePerHour "5.0"^^xsd:float ;
+    sc:hasAddress "789 Electric Boulevard" ;
+    sc:hasOperatingHours "24/7" .
