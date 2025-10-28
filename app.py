@@ -37,22 +37,10 @@ from health_monitoring.routes import router as health_monitoring_router
 from sparql_service import SPARQLQueryService, get_sparql_service
 
 app = Flask(__name__)
-FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
-FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
+# FUSEKI endpoints will be defined later after imports
 
 
-def execute_sparql_query(query):
-    """Exécute une requête SPARQL sur Fuseki"""
-    sparql = SPARQLWrapper(FUSEKI_ENDPOINT)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-
-    try:
-        results = sparql.query().convert()
-        return results
-    except Exception as e:
-        print(f"Erreur SPARQL: {e} (endpoint={FUSEKI_ENDPOINT})")
-        return None
+# Old execute_sparql_query function removed - using enhanced version below
 # Middleware CORS
 @app.after_request
 def after_request(response):
@@ -160,21 +148,29 @@ def search_persons():
     """Recherche de personnes par nom"""
     search_term = request.args.get('q', '')
     
-    query = """
+    # Escape special characters in search term to prevent SPARQL injection
+    # and handle empty search terms
+    if not search_term or not search_term.strip():
+        search_term = ".*"  # Match all if empty
+    else:
+        # Escape special regex characters that could break SPARQL
+        search_term = search_term.replace('\\', '\\\\').replace('"', '\\"')
+    
+    query = f"""
     PREFIX : <http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT ?person ?name ?type
-    WHERE {
+    WHERE {{
         ?person rdf:type :Person .
         ?person :hasName ?name .
-        FILTER regex(?name, "%s", "i")
-        OPTIONAL {
+        FILTER regex(?name, "{search_term}", "i")
+        OPTIONAL {{
             ?person rdf:type ?type .
             FILTER(?type != :Person)
-        }
-    }
-    """ % search_term
+        }}
+    }}
+    """
     
     results = execute_sparql_query(query)
     
@@ -199,20 +195,28 @@ def search_stations():
     """Recherche de stations par nom"""
     search_term = request.args.get('q', '')
 
-    query = """
+    # Escape special characters in search term to prevent SPARQL injection
+    # and handle empty search terms
+    if not search_term or not search_term.strip():
+        search_term = ".*"  # Match all if empty
+    else:
+        # Escape special regex characters that could break SPARQL
+        search_term = search_term.replace('\\', '\\\\').replace('"', '\\"')
+
+    query = f"""
     PREFIX : <http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT ?station ?name ?type ?location ?capacity
-    WHERE {
+    WHERE {{
         ?station rdf:type :Station .
         ?station :hasName ?name .
-        FILTER regex(?name, "%s", "i")
-        OPTIONAL { ?station rdf:type ?type . FILTER(?type != :Station) }
-        OPTIONAL { ?station :hasLocation ?location . }
-        OPTIONAL { ?station :hasCapacity ?capacity . }
-    }
-    """ % search_term
+        FILTER regex(?name, "{search_term}", "i")
+        OPTIONAL {{ ?station rdf:type ?type . FILTER(?type != :Station) }}
+        OPTIONAL {{ ?station :hasLocation ?location . }}
+        OPTIONAL {{ ?station :hasCapacity ?capacity . }}
+    }}
+    """
 
     results = execute_sparql_query(query)
 
@@ -309,4 +313,4 @@ def validate_sparql():
 
 if __name__ == '__main__':
     # CRITICAL: Bind to 0.0.0.0 to accept connections from outside the container
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(port=5000, debug=True)

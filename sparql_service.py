@@ -113,13 +113,14 @@ class SPARQLQueryService:
     
     def _init_validation_patterns(self):
         """Initialize regex patterns for query validation"""
+        # Updated patterns to allow PREFIX declarations before query type
         self.query_patterns = {
-            QueryType.SELECT: re.compile(r'SELECT\s+', re.IGNORECASE),
-            QueryType.CONSTRUCT: re.compile(r'CONSTRUCT\s+', re.IGNORECASE),
-            QueryType.ASK: re.compile(r'ASK\s+', re.IGNORECASE),
-            QueryType.DESCRIBE: re.compile(r'DESCRIBE\s+', re.IGNORECASE),
-            QueryType.INSERT: re.compile(r'INSERT\s+', re.IGNORECASE),
-            QueryType.DELETE: re.compile(r'DELETE\s+', re.IGNORECASE),
+            QueryType.SELECT: re.compile(r'\bSELECT\b', re.IGNORECASE),
+            QueryType.CONSTRUCT: re.compile(r'\bCONSTRUCT\b', re.IGNORECASE),
+            QueryType.ASK: re.compile(r'\bASK\b', re.IGNORECASE),
+            QueryType.DESCRIBE: re.compile(r'\bDESCRIBE\b', re.IGNORECASE),
+            QueryType.INSERT: re.compile(r'\bINSERT\b', re.IGNORECASE),
+            QueryType.DELETE: re.compile(r'\bDELETE\b', re.IGNORECASE),
         }
         
         # Common SPARQL injection patterns to detect
@@ -149,20 +150,36 @@ class SPARQLQueryService:
         
         query = query.strip()
         
-        # Detect query type
+        # Detect query type - look for keywords anywhere in query (after prefixes)
         query_type = None
-        for qtype, pattern in self.query_patterns.items():
-            if pattern.search(query):
-                query_type = qtype
-                break
+        query_upper = query.upper()
+        
+        # Remove comments and normalize whitespace for better parsing
+        clean_query = re.sub(r'#[^\n]*', '', query_upper)
+        clean_query = re.sub(r'\s+', ' ', clean_query)
+        
+        # Look for query type keywords in order of precedence
+        # Use word boundaries to avoid false matches
+        if re.search(r'\bSELECT\b', clean_query):
+            query_type = QueryType.SELECT
+        elif re.search(r'\bCONSTRUCT\b', clean_query):
+            query_type = QueryType.CONSTRUCT
+        elif re.search(r'\bASK\b', clean_query):
+            query_type = QueryType.ASK
+        elif re.search(r'\bDESCRIBE\b', clean_query):
+            query_type = QueryType.DESCRIBE
+        elif re.search(r'\bINSERT\b', clean_query):
+            query_type = QueryType.INSERT
+        elif re.search(r'\bDELETE\b', clean_query):
+            query_type = QueryType.DELETE
         
         if not query_type:
             return ValidationResult(
                 is_valid=False,
-                error_message="Unknown query type. Query must start with SELECT, CONSTRUCT, ASK, DESCRIBE, INSERT, or DELETE",
+                error_message="Unknown query type. Query must contain SELECT, CONSTRUCT, ASK, DESCRIBE, INSERT, or DELETE",
                 suggestions=[
-                    "Start your query with a valid SPARQL keyword",
-                    "Example: SELECT ?s ?p ?o WHERE { ?s ?p ?o }"
+                    "Include a valid SPARQL query type keyword",
+                    "Example: PREFIX ex: <http://example.org/> SELECT ?s ?p ?o WHERE { ?s ?p ?o }"
                 ]
             )
         

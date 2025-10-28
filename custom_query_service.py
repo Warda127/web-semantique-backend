@@ -222,17 +222,18 @@ class CustomQueryService:
         """Detect the type of SPARQL query"""
         query_upper = query.upper().strip()
         
-        if query_upper.startswith('SELECT'):
+        # Look for query type keywords anywhere in query (after prefixes)
+        if 'SELECT ' in query_upper:
             return "SELECT"
-        elif query_upper.startswith('CONSTRUCT'):
+        elif 'CONSTRUCT ' in query_upper:
             return "CONSTRUCT"
-        elif query_upper.startswith('ASK'):
+        elif 'ASK ' in query_upper:
             return "ASK"
-        elif query_upper.startswith('DESCRIBE'):
+        elif 'DESCRIBE ' in query_upper:
             return "DESCRIBE"
-        elif query_upper.startswith('INSERT'):
+        elif 'INSERT ' in query_upper:
             return "INSERT"
-        elif query_upper.startswith('DELETE'):
+        elif 'DELETE ' in query_upper:
             return "DELETE"
         else:
             return "UNKNOWN"
