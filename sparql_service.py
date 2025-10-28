@@ -32,6 +32,7 @@ except ImportError:
     DIGEST = "digest"
 import requests
 from urllib.parse import urlparse
+from rdflib import Graph
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -433,6 +434,33 @@ def execute_sparql_query(query: str,
     else:
         logger.error(f"Query failed: {result.error}")
         return None
+
+# Service SPARQL minimal basé sur rdflib pour usage local / tests.
+# get_sparql_service() retourne un objet avec méthode query(sparql_query).
+
+def get_sparql_service():
+    g = Graph()
+    # charge l'ontologie et les données d'exemple (chemins relatifs au projet)
+    try:
+        g.parse("ontologie/WebSemEsprit (1).rdf")
+    except Exception:
+        # si le fichier a un autre encodage/format, tenter explicitement xml
+        g.parse("ontologie/WebSemEsprit (1).rdf", format="xml")
+    # charger les données d'exemple si présentes
+    try:
+        g.parse("ontologie/sampledataParking/sample_parking_data.ttl", format="turtle")
+    except Exception:
+        pass
+
+    class SparqlService:
+        def __init__(self, graph):
+            self.graph = graph
+
+        def query(self, sparql_query):
+            # renvoie directement le résultat rdflib (iterable de bindings ou de tuples)
+            return self.graph.query(sparql_query)
+
+    return SparqlService(g)
 
 # Global service instance for easy access
 _default_service = None

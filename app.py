@@ -308,5 +308,5 @@ def validate_sparql():
         return jsonify({"error": f"Validation error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    print(f"Starting app using Fuseki endpoint: {FUSEKI_ENDPOINT}")
-    app.run(debug=True, port=5000)
+    # CRITICAL: Bind to 0.0.0.0 to accept connections from outside the container
+    app.run(host='0.0.0.0', port=5000, debug=True)
