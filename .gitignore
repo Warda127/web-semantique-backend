@@ -7,7 +7,6 @@ __pycache__/
 Lib/
 Scripts/
 
-
 # Fichiers Python
 __pycache__/
 *.pyc
@@ -44,3 +43,109 @@ dist/
 .DS_Store
 Thumbs.db
 semantic-web-env/
+
+# Kiro IDE files (development/testing)
+.kiro/
+*.kiro
+
+# Testing files
+test_*.py
+*_test.py
+tests/
+test/
+coverage/
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+.nyc_output/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Development and debugging
+debug/
+debug_*.py
+temp/
+tmp/
+scratch/
+playground/
+experiments/
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with sensitive data
+config.local.py
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Documentation build
+docs/_build/
+docs/build/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Flask instance folder
+instance/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Health monitoring service development files
+health_monitoring_dev/
+health_test_*.py
+
+# SPARQL query test files
+sparql_test_*.py
+query_examples/
+test_queries/
+
+# Performance monitoring logs
+performance_*.log
+metrics_*.json
+
+# Fuseki server files (if downloaded locally)
+fuseki-server.jar
+fuseki-data/
+fuseki-logs/
+
+# Ontology development files
+ontology_dev/
+*.owl.bak
+*.rdf.bak
+*.ttl.bak
