@@ -170,6 +170,48 @@ def search_persons():
     else:
         return jsonify({"error": "Erreur lors de la recherche"}), 500
 
+
+
+@app.route('/api/search/stations')
+def search_stations():
+    """Recherche de stations par nom"""
+    search_term = request.args.get('q', '')
+
+    query = """
+    PREFIX : <http://www.semanticweb.org/monpc/ontologies/2025/9/untitled-ontology-4#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT ?station ?name ?type ?location ?capacity
+    WHERE {
+        ?station rdf:type :Station .
+        ?station :hasName ?name .
+        FILTER regex(?name, "%s", "i")
+        OPTIONAL { ?station rdf:type ?type . FILTER(?type != :Station) }
+        OPTIONAL { ?station :hasLocation ?location . }
+        OPTIONAL { ?station :hasCapacity ?capacity . }
+    }
+    """ % search_term
+
+    results = execute_sparql_query(query)
+
+    if results:
+        stations = []
+        for result in results["results"]["bindings"]:
+            station = {
+                "uri": result["station"]["value"],
+                "name": result.get("name", {}).get("value", "Sans nom"),
+                "type": result.get("type", {}).get("value", "Station"),
+                "location": result.get("location", {}).get("value", ""),
+                "capacity": result.get("capacity", {}).get("value", "")
+            }
+            stations.append(station)
+        return jsonify(stations)
+    else:
+        return jsonify({"error": "Erreur lors de la recherche"}), 500
+
+
+
+
 @app.route('/api/ai/query', methods=['POST'])
 def ai_query():
     """Endpoint pour les questions en langage naturel"""
