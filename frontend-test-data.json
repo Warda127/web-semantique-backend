@@ -1,0 +1,12 @@
+{
+  "localname": "TestFrontend",
+  "type": "CarParkingStation",
+  "name": "Frontend Test Station",
+  "capacity": 100,
+  "availableSpaces": 50,
+  "pricePerHour": 3.5,
+  "address": "123 Frontend Street",
+  "latitude": 36.8065,
+  "longitude": 10.1815,
+  "operatingHours": "24/7"
+}

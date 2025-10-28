@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, jsonify, request
 try:
     from SPARQLWrapper import SPARQLWrapper, JSON
@@ -48,9 +49,9 @@ except Exception:
 
 router = Blueprint('travel_plan', __name__)
 
-# Fuseki endpoints (adjust dataset name if needed)
-FUSEKI_ENDPOINT = "http://localhost:3030/smartcity/query"
-FUSEKI_UPDATE = "http://localhost:3030/smartcity/update"
+# Fuseki endpoints - use environment variables from docker-compose
+FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
+FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
 
 # Get enhanced SPARQL service instance
 sparql_service = get_sparql_service(FUSEKI_ENDPOINT)

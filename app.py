@@ -9,6 +9,7 @@
 #   pip install -r requirements.txt
 #   # Alternatively:
 #   pip install Flask SPARQLWrapper rdflib requests fastapi uvicorn
+import os
 
 from flask import Flask, request, jsonify
 try:
@@ -28,6 +29,7 @@ except ImportError:
 from ai_sparql_transformer import sparql_transformer
 from transport_mode.routes import router as transport_mode_router
 from travel_plan.routes import router as travel_plan_router
+from parking_station.routes import router as parking_station_router
 from ontology_search.routes import router as ontology_search_router
 from transport_recommendation.routes import router as transport_recommendation_router
 from custom_query.routes import router as custom_query_router
@@ -35,7 +37,22 @@ from health_monitoring.routes import router as health_monitoring_router
 from sparql_service import SPARQLQueryService, get_sparql_service
 
 app = Flask(__name__)
+FUSEKI_ENDPOINT = os.getenv('FUSEKI_QUERY', "http://localhost:3030/smartcity/query")
+FUSEKI_UPDATE = os.getenv('FUSEKI_UPDATE', "http://localhost:3030/smartcity/update")
 
+
+def execute_sparql_query(query):
+    """Exécute une requête SPARQL sur Fuseki"""
+    sparql = SPARQLWrapper(FUSEKI_ENDPOINT)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+
+    try:
+        results = sparql.query().convert()
+        return results
+    except Exception as e:
+        print(f"Erreur SPARQL: {e} (endpoint={FUSEKI_ENDPOINT})")
+        return None
 # Middleware CORS
 @app.after_request
 def after_request(response):
@@ -51,6 +68,11 @@ app.register_blueprint(transport_mode_router, url_prefix='/api/transport-modes')
 # Register travel-plan blueprint so TravelPlan endpoints are available under /api/travel-plans
 app.register_blueprint(travel_plan_router, url_prefix='/api/travel-plans')
 
+app.register_blueprint(parking_station_router, url_prefix='/api/parking-stations')
+
+ 
+# Configuration Fuseki - Use environment variable set in docker-compose.yml
+# The environment variable FUSEKI_QUERY is already set at the top of the file
 # ontology search routes
 # Register ontology-search blueprint for concept search and class exploration
 app.register_blueprint(ontology_search_router, url_prefix='/api')
@@ -287,4 +309,4 @@ def validate_sparql():
 
 if __name__ == '__main__':
     print(f"Starting app using Fuseki endpoint: {FUSEKI_ENDPOINT}")
-    app.run(debug=True, port=50001, host='0.0.0.0')
+    app.run(debug=True, port=5000)
